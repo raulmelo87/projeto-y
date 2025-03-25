@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <!-- Meta tag para responsividade -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Denúncia Urbana - Fortaleza-CE</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik+Doodle+Shadow&family=Rubik+Glitch&display=swap" rel="stylesheet">  
+  <style>    
+    .navbar-brand {
+      font-family: 'Rubik Glitch', cursive;
+      font-size: 2rem;
+    }
+    .denuncia {
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .denuncia img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .intro {
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 1px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="#">DENÚNCIA URBANA</a>
+      <div class="d-flex">
+        <% if (userId) { %>
+          <% if (isAdmin) { %>
+            <a href="/admin" class="btn btn-primary me-2">Admin</a>
+          <% } %>
+          <span class="navbar-text me-2"><%= username %> logado... </span>
+          <a href="/logout" class="btn btn-outline-light">Sair</a>
+        <% } else { %>
+          <a href="/login" class="btn btn-outline-light me-2">Login</a>
+          <a href="/register" class="btn btn-outline-light">Registrar</a>
+        <% } %>
+      </div>      
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Mensagem de confirmação após envio da denúncia -->
+    <% if (message) { %>
+      <div class="alert alert-success text-center">
+        <%= message %>
+      </div>
+    <% } %>
+
+    <!-- Seção de Introdução -->
+    <div class="intro text-center">
+      <h1>Olá, Seja Bem Vindo!</h1>
+      <p class="lead">
+        Este site foi criado para que você possa denunciar problemas urbanos em Fortaleza-CE, como buracos nas ruas, falta de iluminação, falhas na coleta de lixo, degradação de espaços públicos e a ausência de manutenções e ações políticas em geral.
+        Sua participação é essencial para melhorar a nossa cidade!
+      </p>
+    </div>
+
+    <!-- Formulário de Busca -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <form action="/" method="GET" class="d-flex">
+          <input type="text" name="q" class="form-control me-2" placeholder="Filtrar denúncias por bairro..." value="<%= search %>">
+          <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulário de Denúncia (apenas para usuários logados) -->
+    <% if (userId) { %>
+      <div class="row mb-4">
+        <div class="col-12">
+          <h2>Fazer uma nova denúncia</h2>
+          <form action="/denunciar" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="descricao" class="form-label">Descrição:</label>
+              <textarea name="descricao" id="descricao" rows="4" class="form-control" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="imagem" class="form-label">Foto (opcional):</label>
+              <input type="file" name="imagem" id="imagem" accept="image/*" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar Denúncia</button>
+          </form>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="mb-4 text-center">
+        <p>
+          Você precisa estar logado para criar denúncias. 
+          <a href="/login">Faça login</a> ou <a href="/register">registre-se</a>.
+        </p>
+      </div>
+    <% } %>
+
+    <hr>
+
+    <!-- Listagem de Denúncias Recentes -->
+    <div class="row">
+      <h2 class="mb-3 text-center">Denúncias Recentes</h2>
+      <% if (denuncias.length === 0) { %>
+        <p class="text-center">Nenhuma denúncia encontrada.</p>
+      <% } else { %>
+        <% denuncias.forEach(denuncia => { %>
+          <div class="col-sm-12 col-md-6 col-lg-4">
+            <div class="denuncia">
+              <% if (denuncia.imagem) { %>
+                <img src="/uploads/<%= denuncia.imagem %>" alt="Imagem da denúncia" class="img-fluid">
+              <% } %>
+              <p><%= denuncia.descricao %></p>
+              <small class="text-muted">Enviado em: <%= denuncia.data.toLocaleString() %></small>
+              <br>
+              <small class="<%= denuncia.resolvido ? 'text-success' : 'text-danger' %>">
+                Status: <%= denuncia.resolvido ? 'Resolvido' : 'Não Resolvido' %>
+              </small>
+              
+              <!-- Botão para alterar status somente se a denúncia pertencer ao usuário logado -->
+              <% if (userId && denuncia.usuario && denuncia.usuario._id.toString() === userId.toString()) { %>
+                <form action="/denuncia/<%= denuncia._id %>/status" method="POST" class="mt-2">
+                  <% if (!denuncia.resolvido) { %>
+                    <input type="hidden" name="status" value="true">
+                    <button type="submit" class="btn btn-success btn-sm">Marcar como Resolvido</button>
+                  <% } else { %>
+                    <input type="hidden" name="status" value="false">
+                    <button type="submit" class="btn btn-warning btn-sm">Marcar como Não Resolvido</button>
+                  <% } %>
+                </form>
+              <% } %>
+              
+              <!-- Botão de deleção para administradores -->
+              <% if (isAdmin) { %>
+                <form action="/denuncia/<%= denuncia._id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja deletar esta denúncia?');">
+                  <button type="submit" class="btn btn-danger btn-sm mt-2">Deletar</button>
+                </form>
+              <% } %>
+              
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <footer class="bg-light text-center p-3">
+    <p>- Denúncia Urbana -<br> Feito por Raul Melo</p>
+  </footer>
+
+  <!-- Script para remover mensagem após 5 segundos -->
+  <script>
+    setTimeout(() => {
+      document.querySelector('.alert')?.remove();
+    }, 5000);
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
